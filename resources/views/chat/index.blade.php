@@ -1,1181 +1,624 @@
 @extends('layouts.app')
 
-@section('title', 'Garvis - Chat')
-
-@section('header', 'New Chat')
+@section('title', $history ? $history->title : 'Chat Baru')
 
 @section('content')
-
-<div
-    x-data="chatPage()"
-    x-init="init()"
-    class="flex h-full min-h-0 flex-col"
->
-
-    {{-- =========================================================
-         CHAT TOOLBAR
-    ========================================================== --}}
-    <div class="border-b border-slate-200 bg-white px-4 py-3 lg:px-6">
-
-        <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-
-            {{-- MODE --}}
-            <div class="flex rounded-xl bg-slate-100 p-1">
-
-                <button
-                    type="button"
-                    @click="setMode('qa')"
-                    :class="mode === 'qa'
-                        ? 'bg-white text-indigo-600 shadow-sm'
-                        : 'text-slate-500 hover:text-slate-700'"
-                    class="rounded-lg px-4 py-2 text-sm font-medium transition"
-                >
-                    Tanya Dokumen
-                </button>
-
-                <button
-                    type="button"
-                    @click="setMode('compliance')"
-                    :class="mode === 'compliance'
-                        ? 'bg-white text-indigo-600 shadow-sm'
-                        : 'text-slate-500 hover:text-slate-700'"
-                    class="rounded-lg px-4 py-2 text-sm font-medium transition"
-                >
-                    Analisis Kesesuaian
-                </button>
-
-            </div>
-
-            {{-- OPTIONS --}}
-            <div class="flex flex-col gap-2 sm:flex-row">
-
-                {{-- CAKUPAN DOKUMEN --}}
-                <div class="relative">
-
-                    <button
-                        type="button"
-                        @click="scopeOpen = !scopeOpen; modelOpen = false"
-                        class="flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 sm:w-64"
-                    >
-
-                        <div class="flex min-w-0 items-center gap-2">
-
-                            <svg
-                                class="h-4 w-4 shrink-0 text-slate-400"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2m-4 0a2 2 0 104 0m-4 0a2 2 0 114 0"
-                                />
-                            </svg>
-
-                            <span class="truncate">
-                                Cakupan Dokumen
-                            </span>
-
-                            <span
-                                x-show="selectedDocuments.length > 0"
-                                x-text="`(${selectedDocuments.length})`"
-                                class="text-xs text-indigo-600"
-                            ></span>
-
-                        </div>
-
-                        <svg
-                            class="h-4 w-4 text-slate-400"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M19 9l-7 7-7-7"
-                            />
-                        </svg>
-
-                    </button>
-
-                    {{-- DOCUMENT DROPDOWN --}}
-                    <div
-                        x-show="scopeOpen"
-                        x-cloak
-                        @click.outside="scopeOpen = false"
-                        x-transition
-                        class="absolute right-0 z-50 mt-2 w-80 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl"
-                    >
-
-                        <div class="mb-3 flex items-center justify-between">
-
-                            <div>
-                                <h3 class="text-sm font-semibold text-slate-800">
-                                    Cakupan Dokumen
-                                </h3>
-
-                                <p class="mt-0.5 text-xs text-slate-400">
-                                    Pilih dokumen yang digunakan AI
-                                </p>
-                            </div>
-
-                            <button
-                                type="button"
-                                @click="selectAllDocuments()"
-                                class="text-xs font-medium text-indigo-600 hover:text-indigo-700"
-                            >
-                                Semua
-                            </button>
-
-                        </div>
-
-                        <div class="max-h-64 space-y-1 overflow-y-auto">
-
-                            <template x-for="document in documents" :key="document.id">
-
-                                <label
-                                    class="flex cursor-pointer items-start gap-3 rounded-xl p-3 hover:bg-slate-50"
-                                >
-
-                                    <input
-                                        type="checkbox"
-                                        :value="document.id"
-                                        x-model="selectedDocuments"
-                                        class="mt-0.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                                    >
-
-                                    <div class="min-w-0 flex-1">
-
-                                        <div class="flex items-center gap-2">
-
-                                            <span
-                                                class="truncate text-sm font-medium text-slate-700"
-                                                x-text="document.name"
-                                            ></span>
-
-                                            <span
-                                                x-show="document.is_guideline"
-                                                class="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700"
-                                            >
-                                                Panduan
-                                            </span>
-
-                                        </div>
-
-                                    </div>
-
-                                </label>
-
-                            </template>
-
-                        </div>
-
-                        <div
-                            x-show="documents.length === 0"
-                            class="py-6 text-center"
-                        >
-                            <p class="text-sm text-slate-400">
-                                Belum ada dokumen.
-                            </p>
-
-                            <a
-                                href="{{ route('documents.index') }}"
-                                class="mt-2 inline-block text-sm font-medium text-indigo-600 hover:text-indigo-700"
-                            >
-                                Upload Dokumen
-                            </a>
-                        </div>
-
-                    </div>
-
-                </div>
-
-                {{-- MODEL AI --}}
-                <div class="relative">
-
-                    <button
-                        type="button"
-                        @click="modelOpen = !modelOpen; scopeOpen = false"
-                        class="flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 sm:w-64"
-                    >
-
-                        <div class="flex min-w-0 items-center gap-2">
-
-                            <svg
-                                class="h-4 w-4 shrink-0 text-slate-400"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                                />
-                            </svg>
-
-                            <span class="truncate">
-                                Model AI (Ollama)
-                            </span>
-
-                        </div>
-
-                        <svg
-                            class="h-4 w-4 text-slate-400"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M19 9l-7 7-7-7"
-                            />
-                        </svg>
-
-                    </button>
-
-                    {{-- MODEL DROPDOWN --}}
-                    <div
-                        x-show="modelOpen"
-                        x-cloak
-                        @click.outside="modelOpen = false"
-                        x-transition
-                        class="absolute right-0 z-50 mt-2 w-80 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl"
-                    >
-
-                        <div class="mb-3">
-
-                            <h3 class="text-sm font-semibold text-slate-800">
-                                Model AI (Ollama)
-                            </h3>
-
-                            <p class="mt-0.5 text-xs text-slate-400">
-                                Pilih model untuk menjawab pertanyaan
-                            </p>
-
-                        </div>
-
-                        <div class="space-y-1">
-
-                            <template x-for="model in models" :key="model.name">
-
-                                <button
-                                    type="button"
-                                    @click="selectModel(model)"
-                                    class="flex w-full items-center justify-between rounded-xl p-3 text-left hover:bg-slate-50"
-                                >
-
-                                    <div class="min-w-0">
-
-                                        <div class="truncate text-sm font-medium text-slate-700"
-                                             x-text="model.display_name">
-                                        </div>
-
-                                        <div class="mt-0.5 text-xs text-slate-400"
-                                             x-text="model.size">
-                                        </div>
-
-                                    </div>
-
-                                    <svg
-                                        x-show="selectedModel === model.name"
-                                        class="h-5 w-5 text-indigo-600"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                    >
-                                        <path
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                            stroke-width="2"
-                                            d="M5 13l4 4L19 7"
-                                        />
-                                    </svg>
-
-                                </button>
-
-                            </template>
-
-                        </div>
-
-                        <div
-                            x-show="models.length === 0"
-                            class="rounded-xl bg-amber-50 p-3"
-                        >
-
-                            <div class="flex gap-2">
-
-                                <svg
-                                    class="mt-0.5 h-4 w-4 shrink-0 text-amber-500"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        stroke-width="2"
-                                        d="M12 9v2m0 4h.01M10.29 3.86l-7.82 13a2 2 0 001.71 3h15.64a2 2 0 001.71-3l-7.82-13a2 2 0 00-3.42 0z"
-                                    />
-                                </svg>
-
-                                <p class="text-xs text-amber-700">
-                                    Belum ada model Ollama yang tersedia.
-                                </p>
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-            </div>
-
+@php
+    $payload = [
+        'messages'     => $messages,
+        'historyId'    => $history?->id,
+        'defaultModel' => $defaultModel,
+        'documents'    => $documents->map(fn ($d) => [
+            'id'           => $d->id,
+            'name'         => $d->original_name,
+            'is_guideline' => (bool) $d->is_guideline,
+        ])->values(),
+        'urls' => [
+            'ask'       => route('chat.ask'),
+            'models'    => route('models.index'),
+            'recent'    => route('history.recent'),
+            'show'      => url('/chat'),
+            'documents' => route('documents.index'),
+            'history'   => route('history.index'),
+        ],
+        'maxLength' => 2000,
+    ];
+@endphp
+
+<script>window.__garvisChat = @js($payload);</script>
+
+<div class="flex h-full flex-col" x-data="chatApp()">
+
+    {{-- ============ Toolbar: mode, cakupan dokumen, model ============ --}}
+    <div class="relative z-20 flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-white/80 px-4 py-2.5 backdrop-blur sm:px-6">
+
+        <div class="inline-flex rounded-xl bg-slate-100 p-1 text-xs font-medium">
+            <button type="button" @click="setMode('qa')"
+                    :class="mode === 'qa' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
+                    class="rounded-lg px-3 py-1.5 transition">Tanya Dokumen</button>
+            <button type="button" @click="setMode('compliance')"
+                    :class="mode === 'compliance' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
+                    class="rounded-lg px-3 py-1.5 transition">Analisis Kesesuaian</button>
         </div>
 
-    </div>
+        <div class="flex items-center gap-2">
 
+            {{-- Cakupan dokumen --}}
+            <div class="relative" @click.outside="scopeOpen = false">
+                <button type="button" @click="scopeOpen = !scopeOpen; modelOpen = false"
+                        class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-900">
+                    <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M7 3h7l5 5v13H7zM14 3v5h5"/>
+                    </svg>
+                    <span x-text="scopeLabel"></span>
+                    <svg class="h-3.5 w-3.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/>
+                    </svg>
+                </button>
 
-    {{-- =========================================================
-         CHAT AREA
-    ========================================================== --}}
-    <div
-        x-ref="messagesContainer"
-        class="thin-scroll min-h-0 flex-1 overflow-y-auto"
-    >
+                <div x-show="scopeOpen" x-cloak x-transition.origin.top.right
+                     class="absolute right-0 mt-2 w-80 max-w-[85vw] rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
+                    <p class="px-2 pb-2 pt-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400"
+                       x-text="mode === 'compliance' ? 'Dokumen yang diperiksa' : 'Cari pada dokumen'"></p>
 
-        {{-- EMPTY STATE --}}
-        <template x-if="messages.length === 0 && !loading">
+                    <template x-if="scopeDocs.length === 0">
+                        <p class="px-2 pb-2 text-xs leading-relaxed text-slate-500">
+                            <span x-show="mode === 'qa'">Belum ada dokumen yang selesai diproses.</span>
+                            <span x-show="mode === 'compliance'">Belum ada dokumen non-panduan yang selesai diproses.</span>
+                            <a href="{{ route('documents.index') }}" class="font-medium text-indigo-600 hover:text-indigo-700">Unggah dokumen</a>
+                        </p>
+                    </template>
 
-            <div class="flex min-h-full items-center justify-center p-6">
-
-                <div class="w-full max-w-3xl">
-
-                    {{-- ICON --}}
-                    <div class="mb-6 flex justify-center">
-
-                        <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-600 text-2xl font-bold text-white shadow-lg shadow-indigo-600/20">
-                            G
+                    <template x-if="scopeDocs.length > 0">
+                        <div>
+                            <div class="max-h-56 space-y-0.5 overflow-y-auto thin-scroll">
+                                <template x-for="doc in scopeDocs" :key="doc.id">
+                                    <label class="flex cursor-pointer items-start gap-2.5 rounded-lg px-2 py-2 text-xs text-slate-700 hover:bg-slate-50">
+                                        <input type="checkbox" class="mt-0.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                               :checked="selectedDocs.includes(doc.id)" @change="toggleDoc(doc.id)">
+                                        <span class="min-w-0 flex-1 break-words" x-text="doc.name"></span>
+                                        <span x-show="doc.is_guideline"
+                                              class="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">Panduan</span>
+                                    </label>
+                                </template>
+                            </div>
+                            <div class="mt-1 flex items-center justify-between border-t border-slate-100 px-2 pt-2 text-[11px]">
+                                <span class="text-slate-400"
+                                      x-text="selectedDocs.length === 0 ? 'Semua dokumen dipakai' : selectedDocs.length + ' dipilih'"></span>
+                                <button type="button" x-show="selectedDocs.length > 0" @click="selectedDocs = []"
+                                        class="font-medium text-indigo-600 hover:text-indigo-700">Reset</button>
+                            </div>
                         </div>
-
-                    </div>
-
-                    {{-- TITLE --}}
-                    <div class="text-center">
-
-                        <h2
-                            class="text-2xl font-bold text-slate-900"
-                            x-text="mode === 'qa'
-                                ? 'Tanya Dokumen'
-                                : 'Analisis Kesesuaian'"
-                        ></h2>
-
-                        <p
-                            class="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-500"
-                            x-text="mode === 'qa'
-                                ? 'Ajukan pertanyaan dan dapatkan jawaban berdasarkan informasi yang terdapat dalam dokumen.'
-                                : 'Analisis kesesuaian dokumen berdasarkan panduan atau dokumen acuan yang tersedia.'"
-                        ></p>
-
-                    </div>
-
-                    {{-- NO DOCUMENT --}}
-                    <div
-                        x-show="documents.length === 0"
-                        class="mx-auto mt-6 max-w-xl rounded-2xl border border-dashed border-slate-300 bg-white p-5 text-center"
-                    >
-
-                        <svg
-                            class="mx-auto h-8 w-8 text-slate-400"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="1.7"
-                                d="M7 3h7l4 4v14H7a2 2 0 01-2-2V5a2 2 0 012-2z"
-                            />
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="1.7"
-                                d="M14 3v5h5"
-                            />
-                        </svg>
-
-                        <p class="mt-2 text-sm font-medium text-slate-700">
-                            Belum ada dokumen
-                        </p>
-
-                        <p class="mt-1 text-xs text-slate-400">
-                            Upload dokumen terlebih dahulu untuk mulai menggunakan Garvis.
-                        </p>
-
-                        <a
-                            href="{{ route('documents.index') }}"
-                            class="mt-4 inline-flex items-center rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
-                        >
-                            Upload Dokumen
-                        </a>
-
-                    </div>
-
-                    {{-- SUGGESTIONS --}}
-                    <div
-                        x-show="documents.length > 0"
-                        class="mt-8"
-                    >
-
-                        <p class="mb-3 text-center text-xs font-medium uppercase tracking-wide text-slate-400">
-                            Contoh pertanyaan
-                        </p>
-
-                        <div class="grid gap-3 sm:grid-cols-2">
-
-                            <template x-for="suggestion in suggestions" :key="suggestion">
-
-                                <button
-                                    type="button"
-                                    @click="useSuggestion(suggestion)"
-                                    class="rounded-2xl border border-slate-200 bg-white p-4 text-left text-sm text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
-                                >
-
-                                    <div class="flex gap-3">
-
-                                        <svg
-                                            class="mt-0.5 h-4 w-4 shrink-0 text-indigo-500"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <path
-                                                stroke-linecap="round"
-                                                stroke-linejoin="round"
-                                                stroke-width="2"
-                                                d="M9.5 4.5l1.1 2.9a2 2 0 001.2 1.2l2.9 1.1-2.9 1.1a2 2 0 00-1.2 1.2l-1.1 2.9-1.1-2.9a2 2 0 00-1.2-1.2l-2.9-1.1 2.9-1.1a2 2 0 001.2-1.2l1.1-2.9z"
-                                            />
-                                        </svg>
-
-                                        <span x-text="suggestion"></span>
-
-                                    </div>
-
-                                </button>
-
-                            </template>
-
-                        </div>
-
-                    </div>
-
+                    </template>
                 </div>
-
             </div>
 
-        </template>
+            {{-- Model Ollama --}}
+            <div class="relative" @click.outside="modelOpen = false">
+                <button type="button" @click="modelOpen = !modelOpen; scopeOpen = false"
+                        class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-900">
+                    <svg class="h-4 w-4 text-indigo-500" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                        <rect x="6" y="6" width="12" height="12" rx="2"/>
+                        <path stroke-linecap="round" d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/>
+                    </svg>
+                    <span x-text="modelLabel"></span>
+                    <svg class="h-3.5 w-3.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/>
+                    </svg>
+                </button>
 
+                <div x-show="modelOpen" x-cloak x-transition.origin.top.right
+                     class="absolute right-0 mt-2 w-72 max-w-[85vw] rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
+                    <p class="px-2 pb-2 pt-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Model AI (Ollama)</p>
 
-        {{-- MESSAGES --}}
-        <div
-            x-show="messages.length > 0"
-            class="mx-auto w-full max-w-4xl space-y-6 p-4 lg:p-8"
-        >
+                    <p x-show="modelsLoading" class="px-2 py-2 text-xs text-slate-500">Memuat daftar model…</p>
 
-            <template x-for="(message, index) in messages" :key="index">
+                    <p x-show="!modelsLoading && models.length === 0" class="px-2 py-2 text-xs leading-relaxed text-slate-500">
+                        Tidak ada model terdeteksi. Pasang model dengan
+                        <code class="rounded bg-slate-100 px-1 py-0.5">ollama pull llama3:8b</code>.
+                    </p>
 
-                <div>
+                    <p x-show="modelsWarning" class="mx-1 mb-1 rounded-lg bg-amber-50 px-2.5 py-2 text-[11px] leading-relaxed text-amber-700"
+                       x-text="modelsWarning"></p>
 
-                    {{-- USER MESSAGE --}}
-                    <template x-if="message.role === 'user'">
-
-                        <div class="flex justify-end">
-
-                            <div class="max-w-[85%] rounded-2xl rounded-br-md bg-indigo-600 px-4 py-3 text-sm leading-6 text-white shadow-sm">
-                                <p
-                                    class="whitespace-pre-wrap"
-                                    x-text="message.content"
-                                ></p>
-                            </div>
-
-                        </div>
-
-                    </template>
-
-
-                    {{-- ASSISTANT MESSAGE --}}
-                    <template x-if="message.role === 'assistant'">
-
-                        <div class="flex gap-3">
-
-                            {{-- AI ICON --}}
-                            <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-sm font-bold text-white">
-                                G
-                            </div>
-
-                            <div class="min-w-0 flex-1">
-
-                                {{-- STATUS --}}
-                                <div class="mb-1 flex items-center gap-2">
-
-                                    <span class="text-xs font-semibold text-slate-700">
-                                        Garvis
-                                    </span>
-
-                                    <span
-                                        x-show="message.status === 'success'"
-                                        class="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-700"
-                                    >
-                                        Selesai
-                                    </span>
-
-                                    <span
-                                        x-show="message.status === 'not_found'"
-                                        class="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700"
-                                    >
-                                        Tidak ditemukan
-                                    </span>
-
-                                    <span
-                                        x-show="message.status === 'error'"
-                                        class="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-700"
-                                    >
-                                        Error
-                                    </span>
-
-                                </div>
-
-                                {{-- CONTENT --}}
-                                <div
-                                    class="rounded-2xl rounded-tl-md border border-slate-200 bg-white p-4 shadow-sm"
-                                >
-
-                                    <div
-                                        class="md"
-                                        x-text="message.content"
-                                    ></div>
-
-                                    {{-- SOURCES --}}
-                                    <div
-                                        x-show="message.sources && message.sources.length > 0"
-                                        class="mt-4 border-t border-slate-100 pt-4"
-                                    >
-
-                                        <button
-                                            type="button"
-                                            @click="message.sourcesOpen = !message.sourcesOpen"
-                                            class="flex w-full items-center justify-between text-left"
-                                        >
-
-                                            <div class="flex items-center gap-2">
-
-                                                <svg
-                                                    class="h-4 w-4 text-slate-400"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    viewBox="0 0 24 24"
-                                                >
-                                                    <path
-                                                        stroke-linecap="round"
-                                                        stroke-linejoin="round"
-                                                        stroke-width="2"
-                                                        d="M9 5l7 7-7 7"
-                                                    />
-                                                </svg>
-
-                                                <span class="text-xs font-semibold text-slate-600">
-                                                    Sumber Dokumen
-                                                </span>
-
-                                                <span
-                                                    class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500"
-                                                    x-text="message.sources ? message.sources.length : 0"
-                                                ></span>
-
-                                            </div>
-
-                                        </button>
-
-
-                                       <div
-    x-show="message.sourcesOpen"
-    x-transition
-    class="mt-3 space-y-2"
->
-
-                                            <template
-                                                x-for="source in message.sources"
-                                                :key="source.id"
-                                            >
-
-                                                <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
-
-                                                    <div class="flex items-start justify-between gap-3">
-
-                                                        <div class="min-w-0">
-
-                                                            <div class="flex items-center gap-2">
-
-                                                                <svg
-                                                                    class="h-4 w-4 shrink-0 text-indigo-500"
-                                                                    fill="none"
-                                                                    stroke="currentColor"
-                                                                    viewBox="0 0 24 24"
-                                                                >
-                                                                    <path
-                                                                        stroke-linecap="round"
-                                                                        stroke-linejoin="round"
-                                                                        stroke-width="1.8"
-                                                                        d="M7 3h7l4 4v14H7a2 2 0 01-2-2V5a2 2 0 012-2z"
-                                                                    />
-                                                                    <path
-                                                                        stroke-linecap="round"
-                                                                        stroke-linejoin="round"
-                                                                        stroke-width="1.8"
-                                                                        d="M14 3v5h5"
-                                                                    />
-                                                                </svg>
-
-                                                                <span
-                                                                    class="truncate text-xs font-semibold text-slate-700"
-                                                                    x-text="source.document"
-                                                                ></span>
-
-                                                            </div>
-
-                                                            <p
-                                                                class="mt-1 text-[11px] text-slate-400"
-                                                                x-text="`Halaman ${source.page} • Relevansi ${source.score}`"
-                                                            ></p>
-
-                                                        </div>
-
-                                                    </div>
-
-                                                    <p
-                                                        class="mt-2 text-xs leading-5 text-slate-500"
-                                                        x-text="source.snippet"
-                                                    ></p>
-
-                                                </div>
-
-                                            </template>
-
-                                        </div>
-
-                                    </div>
-
-                                    {{-- MESSAGE META --}}
-                                    <div class="mt-4 flex flex-wrap items-center gap-3">
-
-                                        <span
-                                            x-show="message.model"
-                                            class="text-[10px] text-slate-400"
-                                            x-text="message.model"
-                                        ></span>
-
-                                        <span
-                                            x-show="message.latency"
-                                            class="text-[10px] text-slate-400"
-                                            x-text="message.latency"
-                                        ></span>
-
-                                        <button
-                                            type="button"
-                                            @click="copyMessage(message.content)"
-                                            class="text-[11px] font-medium text-slate-400 hover:text-indigo-600"
-                                        >
-                                            Salin
-                                        </button>
-
-                                        <button
-                                            type="button"
-                                            @click="retryMessage(index)"
-                                            class="text-[11px] font-medium text-slate-400 hover:text-indigo-600"
-                                        >
-                                            Coba Lagi
-                                        </button>
-
-                                    </div>
-
-                                </div>
-
-                            </div>
-
-                        </div>
-
-                    </template>
-
+                    <div class="max-h-60 space-y-0.5 overflow-y-auto thin-scroll">
+                        <template x-for="m in models" :key="m.name">
+                            <button type="button" @click="selectModel(m.name)"
+                                    class="flex w-full items-center justify-between gap-3 rounded-lg px-2.5 py-2 text-left transition hover:bg-slate-50"
+                                    :class="m.name === model ? 'bg-indigo-50' : ''">
+                                <span class="min-w-0">
+                                    <span class="block truncate text-xs font-medium text-slate-800" x-text="m.display_name"></span>
+                                    <span class="block truncate text-[11px] text-slate-400" x-text="m.name + (m.size ? ' · ' + m.size : '')"></span>
+                                </span>
+                                <svg x-show="m.name === model" class="h-4 w-4 shrink-0 text-indigo-600" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m5 12 5 5 9-10"/>
+                                </svg>
+                            </button>
+                        </template>
+                    </div>
                 </div>
+            </div>
+        </div>
+    </div>
 
+    {{-- ============ Percakapan ============ --}}
+    <div x-ref="scroller" class="min-h-0 flex-1 overflow-y-auto thin-scroll">
+        <div class="mx-auto w-full max-w-4xl space-y-6 px-4 py-6 sm:px-8">
+
+            {{-- Keadaan kosong --}}
+            <template x-if="messages.length === 0 && !loading">
+                <div class="flex flex-col items-center px-4 py-16 text-center">
+                    <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-ink-900 text-lg font-semibold italic text-white">G</div>
+                    <h2 class="mt-5 text-lg font-semibold text-slate-900"
+                        x-text="mode === 'compliance' ? 'Analisis kesesuaian dokumen' : 'Tanyakan sesuatu tentang dokumen Anda'"></h2>
+                    <p class="mt-1.5 max-w-md text-sm text-slate-500"
+                       x-text="mode === 'compliance'
+                           ? 'Garvis membandingkan dokumen Anda dengan dokumen panduan acuan dan menunjukkan bagian yang kurang atau tidak sesuai.'
+                           : 'Jawaban hanya berasal dari dokumen yang Anda unggah, lengkap dengan sumber halamannya.'"></p>
+
+                    <template x-if="docs.length === 0">
+                        <a href="{{ route('documents.index') }}"
+                           class="mt-6 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700">
+                            Unggah dokumen pertama
+                        </a>
+                    </template>
+
+                    <template x-if="docs.length > 0">
+                        <div class="mt-6 flex max-w-xl flex-wrap justify-center gap-2">
+                            <template x-for="s in suggestions" :key="s">
+                                <button type="button" @click="useSuggestion(s)"
+                                        class="rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs text-slate-600 transition hover:border-indigo-300 hover:text-indigo-600"
+                                        x-text="s"></button>
+                            </template>
+                        </div>
+                    </template>
+                </div>
             </template>
 
+            {{-- Daftar pesan --}}
+            <template x-for="msg in messages" :key="msg.id">
+                <div>
+                    {{-- Pertanyaan pengguna --}}
+                    <template x-if="msg.role === 'user'">
+                        <div class="flex justify-end">
+                            <div class="max-w-[85%] whitespace-pre-wrap break-words rounded-2xl rounded-tr-md bg-indigo-600 px-5 py-3 text-sm leading-relaxed text-white shadow-sm sm:max-w-[70%]"
+                                 x-text="msg.content"></div>
+                        </div>
+                    </template>
 
-            {{-- LOADING --}}
-            <div
-                x-show="loading"
-                class="flex gap-3"
-            >
+                    {{-- Jawaban Garvis --}}
+                    <template x-if="msg.role === 'assistant'">
+                        <div class="flex items-start gap-3 sm:gap-4">
+                            <div class="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-ink-900 text-sm font-semibold italic text-white">G</div>
 
-                <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-sm font-bold text-white">
-                    G
+                            <div class="min-w-0 max-w-3xl">
+                                <div class="rounded-2xl border px-5 py-4 shadow-sm sm:px-6 sm:py-5"
+                                     :class="{
+                                         'border-slate-200 bg-white': msg.status === 'success',
+                                         'border-amber-200 bg-amber-50/70': msg.status === 'not_found',
+                                         'border-rose-200 bg-rose-50': msg.status === 'error'
+                                     }">
+
+                                    {{-- KF-06: informasi tidak ditemukan --}}
+                                    <div x-show="msg.status === 'not_found'"
+                                         class="mb-2 inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-semibold text-amber-800">
+                                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="m20 20-3.5-3.5M8.5 11h5"/>
+                                        </svg>
+                                        Tidak ditemukan di dokumen
+                                    </div>
+
+                                    {{-- Jawaban (Markdown) --}}
+                                    <div class="md" x-show="msg.status !== 'error'" x-html="render(msg.content)"></div>
+
+                                    {{-- Error --}}
+                                    <div x-show="msg.status === 'error'">
+                                        <div class="flex items-start gap-2.5 text-sm text-rose-700">
+                                            <svg class="mt-0.5 h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                <circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 8v5M12 16h.01"/>
+                                            </svg>
+                                            <p class="break-words" x-text="msg.content"></p>
+                                        </div>
+                                        <button type="button" x-show="msg.question" @click="retry(msg)" :disabled="loading"
+                                                class="mt-3 rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-xs font-medium text-rose-700 transition hover:bg-rose-100 disabled:opacity-50">
+                                            Kirim ulang
+                                        </button>
+                                    </div>
+
+                                    {{-- KF-07: sumber informasi --}}
+                                    <div x-show="msg.sources && msg.sources.length > 0" class="mt-4 border-t border-slate-100 pt-3">
+                                        <button type="button" @click="msg._showSources = !msg._showSources"
+                                                class="flex items-center gap-1.5 text-xs font-medium text-slate-500 transition hover:text-indigo-600">
+                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5zM20 5.5A1.5 1.5 0 0 0 18.5 4H13v16h5.5a1.5 1.5 0 0 0 1.5-1.5z"/>
+                                            </svg>
+                                            <span x-text="'Sumber (' + (msg.sources ? msg.sources.length : 0) + ')'"></span>
+                                            <svg class="h-3.5 w-3.5 transition-transform" :class="msg._showSources ? 'rotate-180' : ''"
+                                                 fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/>
+                                            </svg>
+                                        </button>
+
+                                        <div x-show="msg._showSources" x-cloak class="mt-3 space-y-2.5">
+                                            <template x-for="(src, i) in (msg.sources || [])" :key="i">
+                                                <div class="rounded-xl border border-slate-200 bg-slate-50 p-3.5">
+                                                    <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                                        <span class="rounded-md bg-indigo-50 px-1.5 py-0.5 text-[11px] font-semibold text-indigo-600"
+                                                              x-text="src.label"></span>
+                                                        <span x-show="src.role"
+                                                              class="rounded-md px-1.5 py-0.5 text-[11px] font-medium"
+                                                              :class="src.role === 'guideline' ? 'bg-amber-100 text-amber-700' : 'bg-slate-200 text-slate-600'"
+                                                              x-text="src.role === 'guideline' ? 'Panduan' : 'Dokumen diperiksa'"></span>
+                                                        <span class="min-w-0 truncate text-xs font-medium text-slate-800"
+                                                              x-text="src.document_name"></span>
+                                                        <span x-show="src.page !== null && src.page !== undefined"
+                                                              class="text-xs text-slate-500" x-text="'Hal. ' + src.page"></span>
+                                                        <span class="ml-auto text-[11px] text-slate-500"
+                                                              x-text="'Skor ' + Number(src.score).toFixed(2)"></span>
+                                                    </div>
+                                                    <p class="mt-2 whitespace-pre-line break-words text-xs leading-relaxed text-slate-600"
+                                                       :class="src._open ? '' : 'line-clamp-3'" x-text="src.snippet"></p>
+                                                    <button type="button" x-show="(src.snippet || '').length > 180" @click="src._open = !src._open"
+                                                            class="mt-1.5 text-[11px] font-medium text-indigo-600 hover:text-indigo-700"
+                                                            x-text="src._open ? 'Ringkas' : 'Selengkapnya'"></button>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Meta + aksi --}}
+                                <div x-show="msg.status !== 'error'" class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 px-1 text-[11px] text-slate-400">
+                                    <span x-show="msg.model" x-text="msg.model"></span>
+                                    <span x-show="msg.latency_ms" x-text="formatLatency(msg.latency_ms)"></span>
+                                    <button type="button" @click="copy(msg)" class="font-medium text-slate-400 transition hover:text-indigo-600"
+                                            x-text="msg._copied ? 'Tersalin ✓' : 'Salin'"></button>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
                 </div>
+            </template>
 
-                <div class="rounded-2xl rounded-tl-md border border-slate-200 bg-white px-5 py-4 shadow-sm">
-
-                    <div class="flex items-center gap-1">
-
-                        <span class="h-2 w-2 animate-bounce rounded-full bg-slate-400"></span>
-
-                        <span
-                            class="h-2 w-2 animate-bounce rounded-full bg-slate-400"
-                            style="animation-delay: 120ms"
-                        ></span>
-
-                        <span
-                            class="h-2 w-2 animate-bounce rounded-full bg-slate-400"
-                            style="animation-delay: 240ms"
-                        ></span>
-
+            {{-- Loading state --}}
+            <div x-show="loading" x-cloak class="flex items-start gap-3 sm:gap-4">
+                <div class="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-ink-900 text-sm font-semibold italic text-white">G</div>
+                <div class="rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+                    <div class="flex items-center gap-3">
+                        <div class="flex items-center gap-1" aria-hidden="true">
+                            <span class="h-2 w-2 animate-bounce rounded-full bg-indigo-400"></span>
+                            <span class="h-2 w-2 animate-bounce rounded-full bg-indigo-400 [animation-delay:150ms]"></span>
+                            <span class="h-2 w-2 animate-bounce rounded-full bg-indigo-400 [animation-delay:300ms]"></span>
+                        </div>
+                        <span class="text-sm text-slate-600"
+                              x-text="(mode === 'compliance' ? 'Garvis sedang memeriksa kesesuaian…' : 'Garvis sedang menganalisis dokumen…') + ' ' + elapsed + ' dtk'"></span>
                     </div>
-
-                    <p class="mt-2 text-xs text-slate-400">
-                        Garvis sedang menganalisis dokumen...
+                    <p x-show="elapsed >= 20" class="mt-2 text-xs text-slate-400">
+                        Model lokal dapat membutuhkan waktu lebih lama, terutama pada pertanyaan pertama setelah model dimuat.
                     </p>
-
-                    <p
-                        x-show="elapsedSeconds >= 20"
-                        class="mt-1 text-xs text-amber-600"
-                    >
-                        Proses membutuhkan waktu lebih lama dari biasanya.
-                    </p>
-
                 </div>
+            </div>
+        </div>
+    </div>
 
+    {{-- ============ Composer ============ --}}
+    <div class="shrink-0 px-4 pb-5 pt-2 sm:px-8">
+        <div class="mx-auto w-full max-w-3xl">
+            @unless ($aiStatus['ready'] ?? false)
+                <div class="mb-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-700">
+                    Sistem AI belum siap. Pastikan Flask (<code>rag_server.py</code>) dan Ollama sedang berjalan; pertanyaan mungkin gagal diproses.
+                </div>
+            @endunless
+
+            <div x-show="mode === 'compliance' && !hasGuideline" x-cloak
+                 class="mb-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-xs leading-relaxed text-amber-800">
+                Belum ada dokumen yang ditandai sebagai <strong>panduan acuan</strong>. Tandai satu dokumen di
+                <a href="{{ route('documents.index') }}" class="font-medium underline">Document Manager</a>
+                agar analisis kesesuaian dapat berjalan.
             </div>
 
-        </div>
-
-    </div>
-
-
-    {{-- =========================================================
-         COMPOSER
-    ========================================================== --}}
-    <div class="border-t border-slate-200 bg-white p-3 lg:p-4">
-
-    <div class="mx-auto max-w-4xl">
-
-        {{-- AI STATUS --}}
-        <div
-            x-show="aiUnavailable"
-            class="mb-3 rounded-xl bg-amber-50 px-4 py-3 text-xs text-amber-700"
-        >
-            Model AI belum terhubung. Saat ini tampilan Garvis masih dalam mode demo.
-        </div>
-
-        {{-- COMPLIANCE WARNING --}}
-        <div
-            x-show="mode === 'compliance'"
-            class="mb-3 rounded-xl bg-indigo-50 px-4 py-3 text-xs text-indigo-700"
-        >
-            Mode Analisis Kesesuaian menggunakan dokumen panduan sebagai dasar analisis.
-        </div>
-
-        {{-- INPUT + SEND --}}
-        <div class="flex items-end gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
-
-            {{-- TEXTAREA --}}
-            <textarea
-                x-ref="composer"
-                x-model="question"
-                @keydown.enter="handleEnter($event)"
-                :disabled="loading"
-                rows="1"
-                :placeholder="mode === 'qa'
-                    ? 'Tanyakan sesuatu tentang dokumen...'
-                    : 'Masukkan teks atau pertanyaan yang ingin dianalisis...'"
-                class="min-h-[42px] flex-1 resize-none border-0 bg-transparent px-3 py-2 text-sm leading-6 text-slate-700 outline-none placeholder:text-slate-400 focus:ring-0 disabled:bg-slate-50"
-            ></textarea>
-
-            {{-- SEND BUTTON --}}
-            <button
-                type="button"
-                @click="sendMessage()"
-                :disabled="loading || !question.trim()"
-                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-
-                {{-- SEND ICON --}}
-                <svg
-                    x-show="!loading"
-                    class="h-5 w-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                >
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M5 12h14M13 6l6 6-6 6"
-                    />
+            <form @submit.prevent="send()"
+                  class="flex items-end gap-2 rounded-2xl border border-slate-200 bg-white p-2 pl-4 shadow-sm transition focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-500/15">
+                <svg class="mb-3 h-5 w-5 shrink-0 text-slate-400" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6zM18 15l.8 2.2L21 18l-2.2.8L18 21l-.8-2.2L15 18l2.2-.8z"/>
                 </svg>
 
-                {{-- LOADING --}}
-                <svg
-                    x-show="loading"
-                    class="h-5 w-5 animate-spin"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                >
-                    <circle
-                        class="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        stroke-width="4"
-                    ></circle>
+                <textarea x-ref="input" x-model="input" rows="1" maxlength="2000"
+                          @input="resize()" @keydown.enter="onEnter($event)"
+                          :placeholder="mode === 'compliance' ? 'Contoh: periksa kesesuaian dokumen dengan panduan…' : 'Ketik pertanyaanmu disini...'"
+                          class="max-h-40 min-h-[2.75rem] flex-1 resize-none border-0 bg-transparent py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-0"></textarea>
 
-                    <path
-                        class="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                    ></path>
-                </svg>
+                <button type="submit" :disabled="loading || input.trim() === ''"
+                        class="mb-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                        aria-label="Kirim pertanyaan">
+                    <svg class="h-[18px] w-[18px]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 3 10 14M21 3l-7 18-4-7-7-4z"/>
+                    </svg>
+                </button>
+            </form>
 
-            </button>
-
-        </div>
-
-        <p class="mt-2 text-center text-[10px] text-slate-400">
-            Garvis menggunakan informasi dari dokumen yang dipilih sebagai dasar jawaban.
-        </p>
-
-    </div>
-
-</div>
-
-            <p class="mt-2 text-center text-[10px] text-slate-400">
-                Garvis menggunakan informasi dari dokumen yang dipilih sebagai dasar jawaban.
+            <p class="mt-2 text-center text-[11px] text-slate-400">
+                Enter untuk kirim • Shift+Enter baris baru
+                <span x-show="input.length > 1800" x-cloak class="ml-2 text-amber-600" x-text="input.length + '/2000'"></span>
             </p>
-
         </div>
-
     </div>
-
 </div>
-
-
-{{-- =============================================================
-     ALPINE SCRIPT
-============================================================= --}}
-<script>
-function chatPage() {
-    return {
-
-        mode: 'qa',
-
-        question: '',
-
-        loading: false,
-
-        elapsedSeconds: 0,
-
-        elapsedTimer: null,
-
-        aiUnavailable: false,
-
-        scopeOpen: false,
-
-        modelOpen: false,
-
-        selectedModel: 'llama3.2:3b',
-
-        selectedDocuments: [],
-
-        messages: [],
-
-        documents: [
-            {
-                id: 1,
-                name: 'Dokumen Contoh.pdf',
-                is_guideline: false
-            },
-            {
-                id: 2,
-                name: 'Panduan Akademik.pdf',
-                is_guideline: true
-            }
-        ],
-
-        models: [
-            {
-                name: 'llama3.2:3b',
-                display_name: 'Llama 3.2 3B',
-                size: '2.0 GB'
-            }
-        ],
-
-        suggestions: [
-            'Apa tujuan utama dari dokumen ini?',
-            'Jelaskan isi dokumen secara singkat.',
-            'Apa saja poin penting yang terdapat dalam dokumen?',
-            'Di halaman berapa informasi tersebut dijelaskan?'
-        ],
-
-        init() {
-
-            this.selectedDocuments = this.documents
-                .filter(document => {
-                    if (this.mode === 'compliance') {
-                        return !document.is_guideline;
-                    }
-
-                    return true;
-                })
-                .map(document => document.id);
-
-        },
-
-        setMode(mode) {
-
-            this.mode = mode;
-
-            if (mode === 'compliance') {
-
-                this.selectedDocuments = this.documents
-                    .filter(document => !document.is_guideline)
-                    .map(document => document.id);
-
-            } else {
-
-                this.selectedDocuments = this.documents
-                    .map(document => document.id);
-
-            }
-
-        },
-
-        selectAllDocuments() {
-
-            if (this.mode === 'compliance') {
-
-                this.selectedDocuments = this.documents
-                    .filter(document => !document.is_guideline)
-                    .map(document => document.id);
-
-            } else {
-
-                this.selectedDocuments = this.documents
-                    .map(document => document.id);
-
-            }
-
-        },
-
-        selectModel(model) {
-
-            this.selectedModel = model.name;
-
-            this.modelOpen = false;
-
-        },
-
-        useSuggestion(suggestion) {
-
-            this.question = suggestion;
-
-            this.$nextTick(() => {
-
-                if (this.$refs.composer) {
-                    this.$refs.composer.focus();
-                }
-
-            });
-
-        },
-
-        handleEnter(event) {
-
-            if (event.shiftKey) {
-                return;
-            }
-
-            event.preventDefault();
-
-            this.sendMessage();
-
-        },
-
-        sendMessage() {
-
-            const question = this.question.trim();
-
-            if (!question || this.loading) {
-                return;
-            }
-
-            this.messages.push({
-                role: 'user',
-                content: question
-            });
-
-            this.question = '';
-
-            this.loading = true;
-
-            this.elapsedSeconds = 0;
-
-            this.startTimer();
-
-            this.scrollToBottom();
-
-            /*
-             * SEMENTARA:
-             * Simulasi jawaban AI.
-             *
-             * Nanti bagian ini diganti dengan request
-             * ke Laravel -> AI API -> RAG -> Ollama.
-             */
-
-            setTimeout(() => {
-
-                this.stopTimer();
-
-                this.messages.push({
-
-                    role: 'assistant',
-
-                    status: 'success',
-
-                    content:
-                        'Ini adalah contoh jawaban dari Garvis. ' +
-                        'Nantinya jawaban ini akan dihasilkan berdasarkan ' +
-                        'isi dokumen yang telah dipilih oleh pengguna.',
-
-                    model: this.selectedModel,
-
-                    latency: `${this.elapsedSeconds}s`,
-
-                    sources: [
-                        {
-                            id: 1,
-                            document: 'Dokumen Contoh.pdf',
-                            page: 3,
-                            score: '0.92',
-                            snippet:
-                                'Contoh potongan teks dari dokumen yang menjadi sumber jawaban.'
-                        }
-                    ],
-
-                    sourcesOpen: false
-
-                });
-
-                this.loading = false;
-
-                this.scrollToBottom();
-
-            }, 1200);
-
-        },
-
-        retryMessage(index) {
-
-            if (index <= 0) {
-                return;
-            }
-
-            const previousMessage = this.messages[index - 1];
-
-            if (
-                !previousMessage ||
-                previousMessage.role !== 'user'
-            ) {
-                return;
-            }
-
-            this.question = previousMessage.content;
-
-            this.messages.splice(index, 1);
-
-            this.$nextTick(() => {
-                this.sendMessage();
-            });
-
-        },
-
-        startTimer() {
-
-            this.stopTimer();
-
-            this.elapsedTimer = setInterval(() => {
-
-                this.elapsedSeconds++;
-
-            }, 1000);
-
-        },
-
-        stopTimer() {
-
-            if (this.elapsedTimer) {
-
-                clearInterval(this.elapsedTimer);
-
-                this.elapsedTimer = null;
-
-            }
-
-        },
-
-        scrollToBottom() {
-
-            this.$nextTick(() => {
-
-                const container = this.$refs.messagesContainer;
-
-                if (!container) {
-                    return;
-                }
-
-                container.scrollTo({
-                    top: container.scrollHeight,
-                    behavior: 'smooth'
-                });
-
-            });
-
-        },
-
-        async copyMessage(text) {
-
-            try {
-
-                await navigator.clipboard.writeText(text);
-
-            } catch (error) {
-
-                console.error('Gagal menyalin:', error);
-
-            }
-
-        }
-
-    };
-}
-</script>
-
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('alpine:init', () => {
+    Alpine.data('chatApp', () => {
+        const cfg = window.__garvisChat;
+
+        return {
+            // ---- state ----
+            messages: [],
+            historyId: cfg.historyId,
+            input: '',
+            loading: false,
+            elapsed: 0,
+            timer: null,
+            mode: 'qa',
+            docs: cfg.documents,
+            selectedDocs: [],
+            models: [],
+            modelsLoading: true,
+            modelsWarning: null,
+            model: null,
+            modelOpen: false,
+            scopeOpen: false,
+
+            // ---- getters ----
+            get hasGuideline() {
+                return this.docs.some((d) => d.is_guideline);
+            },
+            get scopeDocs() {
+                return this.mode === 'compliance' ? this.docs.filter((d) => !d.is_guideline) : this.docs;
+            },
+            get scopeLabel() {
+                return this.selectedDocs.length === 0 ? 'Semua dokumen' : this.selectedDocs.length + ' dokumen';
+            },
+            get modelLabel() {
+                if (this.modelsLoading) return 'Memuat model…';
+                const m = this.models.find((x) => x.name === this.model);
+                return m ? m.display_name : (this.model || 'Model default');
+            },
+            get suggestions() {
+                return this.mode === 'compliance'
+                    ? ['Periksa kesesuaian dokumen dengan panduan', 'Bagian mana yang belum memenuhi persyaratan panduan?']
+                    : ['Ringkas isi dokumen ini', 'Apa saja poin utama dalam dokumen?', 'Sebutkan istilah penting beserta definisinya'];
+            },
+
+            // ---- lifecycle ----
+            init() {
+                this.messages = cfg.messages.map((m) => this.prep(m));
+                this.loadModels();
+                this.$nextTick(() => {
+                    this.scrollDown(false);
+                    this.$refs.input?.focus();
+                });
+            },
+
+            prep(m) {
+                if (m.role !== 'assistant') return m;
+                return {
+                    ...m,
+                    sources: (m.sources || []).map((s) => ({ ...s, _open: false })),
+                    _showSources: false,
+                    _copied: false,
+                };
+            },
+
+            // ---- model ----
+            async loadModels() {
+                try {
+                    const data = await window.api(cfg.urls.models);
+                    this.models = data.models || [];
+                    this.modelsWarning = data.warning || null;
+                } catch (e) {
+                    this.models = [];
+                    this.modelsWarning = e.message;
+                }
+
+                let saved = null;
+                try { saved = localStorage.getItem('garvis.model'); } catch (e) { /* abaikan */ }
+
+                const names = this.models.map((m) => m.name);
+                if (saved && names.includes(saved)) this.model = saved;
+                else if (names.includes(cfg.defaultModel)) this.model = cfg.defaultModel;
+                else this.model = names[0] ?? null;
+
+                this.modelsLoading = false;
+            },
+
+            selectModel(name) {
+                this.model = name;
+                this.modelOpen = false;
+                try { localStorage.setItem('garvis.model', name); } catch (e) { /* abaikan */ }
+            },
+
+            // ---- mode & cakupan ----
+            setMode(mode) {
+                this.mode = mode;
+                const allowed = this.scopeDocs.map((d) => d.id);
+                this.selectedDocs = this.selectedDocs.filter((id) => allowed.includes(id));
+            },
+
+            toggleDoc(id) {
+                this.selectedDocs = this.selectedDocs.includes(id)
+                    ? this.selectedDocs.filter((x) => x !== id)
+                    : [...this.selectedDocs, id];
+            },
+
+            useSuggestion(text) {
+                this.input = text;
+                this.$nextTick(() => {
+                    this.resize();
+                    this.$refs.input.focus();
+                });
+            },
+
+            // ---- composer ----
+            onEnter(event) {
+                if (event.shiftKey || event.isComposing) return;
+                event.preventDefault();
+                this.send();
+            },
+
+            resize() {
+                const el = this.$refs.input;
+                if (!el) return;
+                el.style.height = 'auto';
+                el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+            },
+
+            // ---- kirim pertanyaan ----
+            async send(textOverride = null, retryQueryId = null) {
+                const text = (textOverride ?? this.input).trim();
+                if (!text || this.loading) return;
+
+                this.input = '';
+                this.$nextTick(() => this.resize());
+
+                this.messages.push({ id: 'u' + Date.now(), role: 'user', content: text });
+                this.loading = true;
+                this.elapsed = 0;
+                this.timer = setInterval(() => this.elapsed++, 1000);
+                this.scrollDown();
+
+                try {
+                    const data = await window.api(cfg.urls.ask, {
+                        method: 'POST',
+                        body: {
+                            question: text,
+                            history_id: this.historyId,
+                            model_name: this.model,
+                            mode: this.mode,
+                            document_ids: this.selectedDocs.length ? this.selectedDocs : null,
+                            guideline_document_ids: null,
+                            retry_query_id: retryQueryId,
+                        },
+                    });
+
+                    this.adoptHistory(data);
+                    this.messages.push(this.prep({
+                        id: 'a' + data.query_id,
+                        role: 'assistant',
+                        ...data.answer,
+                    }));
+                } catch (error) {
+                    const payload = error.data || {};
+                    this.adoptHistory(payload);
+
+                    this.messages.push(this.prep({
+                        id: 'e' + Date.now(),
+                        role: 'assistant',
+                        content: payload.answer?.content || error.message,
+                        status: 'error',
+                        sources: [],
+                        question: text,
+                        queryId: payload.query_id || null,
+                    }));
+                } finally {
+                    clearInterval(this.timer);
+                    this.loading = false;
+                    this.scrollDown();
+                    this.$nextTick(() => this.$refs.input?.focus());
+                }
+            },
+
+            retry(msg) {
+                if (this.loading || !msg.question) return;
+                const index = this.messages.findIndex((m) => m.id === msg.id);
+                // Buang pesan error beserta gelembung pertanyaan sebelumnya; send() menambahkannya lagi.
+                this.messages.splice(Math.max(index - 1, 0), index === 0 ? 1 : 2);
+                this.send(msg.question, msg.queryId);
+            },
+
+            adoptHistory(data) {
+                if (!data || !data.history_id) return;
+
+                const isNew = !this.historyId;
+                this.historyId = data.history_id;
+
+                if (isNew) {
+                    try { window.history.replaceState({}, '', cfg.urls.show + '/' + data.history_id); } catch (e) { /* abaikan */ }
+                }
+                this.refreshSidebar();
+            },
+
+            // ---- sidebar riwayat ----
+            async refreshSidebar() {
+                const box = document.getElementById('sidebar-history');
+                if (!box) return;
+
+                try {
+                    const data = await window.api(cfg.urls.recent);
+                    box.replaceChildren();
+
+                    data.items.forEach((item) => {
+                        const a = document.createElement('a');
+                        a.href = item.url;
+                        a.title = item.title;
+                        a.textContent = item.title.length > 16 ? item.title.slice(0, 16) + '...' : item.title;
+                        a.className = 'block truncate rounded-lg px-4 py-2 text-[13px] transition ' + (
+                            item.id === this.historyId
+                                ? 'bg-indigo-500/15 font-medium text-indigo-200'
+                                : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
+                        );
+                        box.appendChild(a);
+                    });
+
+                    if (data.has_more) {
+                        const more = document.createElement('a');
+                        more.href = cfg.urls.history;
+                        more.textContent = 'Lihat semua';
+                        more.className = 'block px-4 py-2 text-xs font-medium text-indigo-300 hover:text-indigo-200';
+                        box.appendChild(more);
+                    }
+                } catch (e) {
+                    /* sidebar lama tetap tampil */
+                }
+            },
+
+            // ---- util tampilan ----
+            render(text) {
+                return window.renderMarkdown(text);
+            },
+
+            formatLatency(ms) {
+                return (ms / 1000).toFixed(1) + ' dtk';
+            },
+
+            scrollDown(smooth = true) {
+                this.$nextTick(() => {
+                    const el = this.$refs.scroller;
+                    if (el) el.scrollTo({ top: el.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
+                });
+            },
+
+            async copy(msg) {
+                const text = msg.content || '';
+                try {
+                    await navigator.clipboard.writeText(text);
+                } catch (e) {
+                    // Fallback untuk http non-localhost (mis. garvis.test) yang bukan secure context.
+                    const area = document.createElement('textarea');
+                    area.value = text;
+                    area.style.position = 'fixed';
+                    area.style.opacity = '0';
+                    document.body.appendChild(area);
+                    area.select();
+                    try { document.execCommand('copy'); } catch (err) { /* abaikan */ }
+                    document.body.removeChild(area);
+                }
+                msg._copied = true;
+                setTimeout(() => { msg._copied = false; }, 1600);
+            },
+        };
+    });
+});
+</script>
+@endpush
