@@ -22,6 +22,16 @@ class User extends Authenticatable
         ];
     }
 
+    /*public function documents(): HasMany
+    {
+        return $this->hasMany(Document::class);
+    }*/
+
+    /**public function histories(): HasMany
+    {
+        return $this->hasMany(History::class);
+    }*/
+
     public function getInitialsAttribute(): string
     {
         return strtoupper(mb_substr($this->name ?: $this->username, 0, 2));
