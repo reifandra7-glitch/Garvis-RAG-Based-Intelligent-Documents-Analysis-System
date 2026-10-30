@@ -4,6 +4,52 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | RAG Upload Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Konfigurasi untuk upload dokumen ke sistem RAG Garvis.
+    |
+    */
+
+    /*
+    |--------------------------------------------------------------------------
+    | RAG Flask Server
+    |--------------------------------------------------------------------------
+    */
+
+    'server' => [
+        'url'     => env('RAG_SERVER_URL', 'http://127.0.0.1:5000'),
+        'timeout' => (int) env('RAG_SERVER_TIMEOUT', 300),
+        'api_key' => env('RAG_API_KEY'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | RAG Retrieval
+    |--------------------------------------------------------------------------
+    */
+
+    'retrieval' => [
+        'top_k'           => (int) env('RAG_TOP_K', 5),
+        'score_threshold' => env('RAG_SCORE_THRESHOLD'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | RAG Upload Configuration
+    |--------------------------------------------------------------------------
+    */
+
+    'upload' => [
+        'max_kb'             => (int) env('RAG_MAX_UPLOAD_KB', env('RAG_UPLOAD_MAX_KB', 10240)),
+        'allowed_extensions' => explode(',', env('RAG_ALLOWED_EXTENSIONS', 'pdf,txt,doc,docx')),
+        'allowed_mimes'      => explode(',', env('RAG_ALLOWED_MIMES', 'application/pdf,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document')),
+        'disk'               => env('RAG_UPLOAD_DISK', 'local'),
+        'directory'          => env('RAG_UPLOAD_DIRECTORY', 'documents'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Default Queue Connection Name
     |--------------------------------------------------------------------------
     |
