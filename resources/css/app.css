@@ -5,10 +5,37 @@
     --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system,
         BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
+    /* Navy asli (sidebar dashboard) */
     --color-ink-950: #0b1220;
     --color-ink-900: #0f172a;
     --color-ink-800: #172033;
     --color-ink-700: #1e293b;
+
+    /* Palet brand dari logo, dipakai di seluruh sistem */
+    --color-brand-50: #fff6ec;
+    --color-brand-100: #ffe9d0;
+    --color-brand-200: #ffd0a0;
+    --color-brand-300: #ffbc5c;
+    --color-brand-400: #ff9a35;
+    --color-brand-500: #ff7a1f;
+    --color-brand-600: #e0600d;
+    --color-brand-700: #b84a0b;
+    --color-brand-800: #8f3f12;
+    --color-brand-900: #6e3012;
+    --color-brand-950: #3d1a09;
+
+    /* Sinkronkan indigo ke palet oranye Garvis di seluruh aplikasi */
+    --color-indigo-50: #fff6ec;
+    --color-indigo-100: #ffe9d0;
+    --color-indigo-200: #ffd0a0;
+    --color-indigo-300: #ffbc5c;
+    --color-indigo-400: #ff9a35;
+    --color-indigo-500: #ff7a1f;
+    --color-indigo-600: #ff7a1f;
+    --color-indigo-700: #e0600d;
+    --color-indigo-800: #b84a0b;
+    --color-indigo-900: #6e3012;
+    --color-indigo-950: #3d1a09;
 }
 
 @layer base {
@@ -27,10 +54,7 @@
 
 @layer components {
     .field-input {
-        @apply block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5
-            text-sm text-slate-900 placeholder-slate-400 transition
-            focus:border-indigo-500 focus:bg-white focus:outline-none
-            focus:ring-2 focus:ring-indigo-500/20;
+        @apply block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 transition focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20;
     }
 
     .field-label {
@@ -38,22 +62,36 @@
     }
 
     .btn-primary {
-        @apply inline-flex w-full items-center justify-center rounded-xl
-            bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white
-            shadow-sm transition hover:bg-indigo-700
-            focus:outline-none focus:ring-2 focus:ring-indigo-500/40;
+        @apply inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-brand-500 via-orange-500 to-amber-500 px-4 py-2.5 text-sm font-bold text-slate-950 shadow-md shadow-brand-500/25 transition hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-brand-500/40 disabled:cursor-not-allowed disabled:opacity-60;
     }
 
     .nav-item {
-        @apply flex items-center gap-3 rounded-xl px-4 py-2.5
-            text-sm text-slate-300 transition
-            hover:bg-white/5 hover:text-white;
+        @apply flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white;
     }
 
     .nav-item-active {
-        @apply bg-indigo-600 text-white shadow-lg shadow-indigo-900/30
-            hover:bg-indigo-600;
+        @apply bg-gradient-to-r from-brand-500 via-orange-500 to-amber-500 text-slate-950 font-bold shadow-lg shadow-brand-500/25 hover:brightness-105;
     }
+}
+
+/* Hanya halaman login/register: indigo diganti oranye logo */
+.auth-theme {
+    --color-indigo-50: var(--color-brand-50);
+    --color-indigo-100: var(--color-brand-100);
+    --color-indigo-200: var(--color-brand-200);
+    --color-indigo-300: var(--color-brand-300);
+    --color-indigo-400: var(--color-brand-400);
+    --color-indigo-500: var(--color-brand-500);
+    --color-indigo-600: var(--color-brand-500);
+    --color-indigo-700: var(--color-brand-400);
+}
+
+.auth-theme .btn-primary {
+    @apply font-semibold text-ink-950 shadow-lg shadow-brand-500/25;
+}
+
+.auth-theme .field-input {
+    @apply bg-white;
 }
 
 .thin-scroll {
@@ -68,4 +106,231 @@
 .thin-scroll::-webkit-scrollbar-thumb {
     background: #cbd5e1;
     border-radius: 999px;
+}
+
+/* ===== Halaman login/register: animasi & efek ===== */
+@keyframes authFadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes authFloat {
+    from {
+        transform: translate3d(0, 0, 0) scale(1);
+    }
+
+    to {
+        transform: translate3d(30px, -24px, 0) scale(1.12);
+    }
+}
+
+@keyframes authShake {
+
+    10%,
+    90% {
+        transform: translateX(-2px);
+    }
+
+    20%,
+    80% {
+        transform: translateX(4px);
+    }
+
+    30%,
+    50%,
+    70% {
+        transform: translateX(-8px);
+    }
+
+    40%,
+    60% {
+        transform: translateX(8px);
+    }
+}
+
+@keyframes authBlink {
+    50% {
+        opacity: 0;
+    }
+}
+
+@keyframes authDot {
+
+    0%,
+    80%,
+    100% {
+        transform: scale(.6);
+        opacity: .4;
+    }
+
+    40% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes authShine {
+    to {
+        transform: translateX(450%) skewX(-20deg);
+    }
+}
+
+.auth-reveal {
+    opacity: 0;
+    animation: authFadeUp .7s cubic-bezier(.2, .8, .2, 1) forwards;
+    animation-delay: var(--d, 0ms);
+}
+
+.auth-orb {
+    animation: authFloat 14s ease-in-out infinite alternate;
+}
+
+.auth-shake {
+    animation: authShake .5s cubic-bezier(.36, .07, .19, .97) both;
+}
+
+.auth-dot {
+    animation: authDot 1.2s infinite ease-in-out;
+}
+
+.auth-caret::after {
+    content: '';
+    display: inline-block;
+    width: 2px;
+    height: 1em;
+    margin-left: 2px;
+    vertical-align: -2px;
+    background: currentColor;
+    animation: authBlink 1s steps(1) infinite;
+}
+
+.auth-dots-bg {
+    background-image: radial-gradient(rgb(148 163 184 / .4) 1px, transparent 1px);
+    background-size: 22px 22px;
+    -webkit-mask-image: radial-gradient(ellipse at center, black 25%, transparent 75%);
+    mask-image: radial-gradient(ellipse at center, black 25%, transparent 75%);
+}
+
+.btn-shine {
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-shine::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -60%;
+    width: 30%;
+    background: linear-gradient(90deg, transparent, rgb(255 255 255 / .5), transparent);
+    transform: skewX(-20deg);
+}
+
+.btn-shine:hover::after {
+    animation: authShine .9s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .auth-reveal {
+        opacity: 1;
+        animation: none;
+    }
+
+    .auth-orb,
+    .auth-shake,
+    .auth-dot,
+    .auth-caret::after {
+        animation: none;
+    }
+
+    .btn-shine:hover::after {
+        animation: none;
+    }
+}
+
+/* ===== Auth v3: ilustrasi RAG & tombol ===== */
+@keyframes rag-dash {
+    to {
+        stroke-dashoffset: -26;
+    }
+}
+
+@keyframes rag-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes rag-pulse {
+
+    0%,
+    100% {
+        opacity: .45;
+    }
+
+    50% {
+        opacity: 1;
+    }
+}
+
+@keyframes rag-bob {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-6px);
+    }
+}
+
+.rag-flow {
+    stroke-dasharray: 6 7;
+    animation: rag-dash 1.1s linear infinite;
+}
+
+.rag-spin {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: rag-spin 20s linear infinite;
+}
+
+.rag-pulse {
+    animation: rag-pulse 2.4s ease-in-out infinite;
+}
+
+.rag-float {
+    animation: rag-bob 6s ease-in-out infinite;
+}
+
+.auth-theme .field-input {
+    @apply rounded-2xl py-3;
+}
+
+.auth-theme .btn-primary {
+    @apply rounded-2xl py-3.5;
+    background-image: linear-gradient(180deg, #ff9a35, #ff7a1f);
+}
+
+.auth-theme .btn-primary:hover:not(:disabled) {
+    filter: brightness(1.06);
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    .rag-flow,
+    .rag-spin,
+    .rag-pulse,
+    .rag-float {
+        animation: none;
+    }
 }

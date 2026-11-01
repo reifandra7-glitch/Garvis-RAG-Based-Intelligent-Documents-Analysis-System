@@ -26,7 +26,7 @@ class ModelController extends Controller
         return response()->json([
             'success' => true,
             'warning' => $warning,
-            'models' => $models->map(fn (AiModel $m) => [
+            'models' => $models->map(fn(AiModel $m) => [
                 'id' => $m->id,
                 'name' => $m->name,
                 'display_name' => $m->display_name,
@@ -65,7 +65,7 @@ class ModelController extends Controller
             AiModel::whereNotIn('name', $remote->pluck('name'))->update(['is_active' => false]);
 
             // Jika model default dari .env tidak terpasang, jadikan model pertama sebagai default.
-            if (! AiModel::where('is_default', true)->exists()) {
+            if (!AiModel::where('is_default', true)->exists()) {
                 AiModel::active()->orderBy('name')->first()?->update(['is_default' => true]);
             }
         });
